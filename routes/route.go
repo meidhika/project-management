@@ -4,8 +4,11 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
+	jwtware "github.com/gofiber/jwt/v3"
 	"github.com/joho/godotenv"
+	"github.com/meidhika/project-management/config"
 	"github.com/meidhika/project-management/controllers"
+	"github.com/meidhika/project-management/utils"
 )
 
 func Setup(app *fiber.App, uc *controllers.UserController) {
@@ -17,8 +20,16 @@ func Setup(app *fiber.App, uc *controllers.UserController) {
 
 	app.Post("/v1/auth/register", uc.Register)
 	app.Post("/v1/auth/login", uc.Login)
-	app.Get("/users", uc.GetUserPagination)
-	app.Get("/users/:id", uc.GetUser)
-	app.Put("/users/:id", uc.UpdateUser)
-	app.Delete("/users/:id", uc.DeleteUser)
+
+	api := app.Group("/api/v1", jwtware.New(jwtware.Config{SigningKey: []byte(config.AppConfig.JWTSecret),
+	ContextKey: "user",
+	ErrorHandler: func (c *fiber.Ctx, err error) error{
+		return utils.Unauthorized(c, "Error Unauthorized", err.Error())
+		},
+	}))
+
+	userGroup := api.Group("/users")
+	userGroup.Get("/page", uc.GetUserPagination) // /api/v1/users/page?page=1&limit=10&sort=-id&filter=triady
+	userGroup.Get("/:id", uc.GetUser) // /api/v1/users/:id
+
 }
