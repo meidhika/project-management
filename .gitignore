@@ -1,0 +1,51 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of go build
+*.out
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Dependency directories (optional, usually not needed)
+vendor/
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Coverage files
+coverage.out
+
+# Temporary files
+tmp/
+temp/
+
+# Build folder
+dist/
+build/
+
+# Fiber specific (if you use air/live reload)
+air.log
