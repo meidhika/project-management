@@ -12,18 +12,21 @@ type BoardService interface {
 	Create(board *models.Board) error
 	Update(board *models.Board) error
 	GetByPublicID(publicID string) (*models.Board, error)
+	AddMember(boardPublicID string, userPublicIDS []string) error
 }
 
 type boardService struct {
 	boardRepo repositories.BoardRepository
 	userRepo repositories.UserRepository
+	boardMemberRepo repositories.BoardMemberRepository
 }
 
 func NewBoardService(
 	boardRepo repositories.BoardRepository, 
 	userRepo repositories.UserRepository,
+	boardMemberRepo repositories.BoardMemberRepository,
 ) BoardService {
-	return &boardService{boardRepo, userRepo}
+	return &boardService{boardRepo, userRepo, boardMemberRepo}
 }
 
 func (s *boardService) Create(board *models.Board) error {
@@ -47,3 +50,42 @@ func (s *boardService) GetByPublicID(publicID string) (*models.Board, error) {
 	return s.boardRepo.FindByPublicID(publicID)
 }
 
+func (s *boardService) AddMember(boardPublicID string, userPublicIDS []string) error {
+	board, err := s.boardRepo.FindByPublicID(boardPublicID)
+	if err != nil {
+		return errors.New("Board Not Found")
+	}
+	var userInternalIDs []uint
+	for _, userPublicID := range userPublicIDS {
+		user, err := s.userRepo.FindByPublicID(userPublicID)
+
+		if err != nil {
+			return errors.New("user not found: " + userPublicID)
+		}
+		userInternalIDs = append(userInternalIDs, uint(user.InternalID))
+	}
+	// check keanggotaan user di board
+	existingMembers, err := s.boardMemberRepo.GetMembers(string(board.PublicID.String()))
+	if err != nil {
+		return err
+	}
+
+	// buat map untuk mengecek anggota yang sudah ada
+	memberMap := make(map[uint]bool)
+	for _, member := range existingMembers {
+		memberMap[uint(member.InternalID)] = true
+	}
+
+	var newMemberIDs []uint
+	for _, userID := range userInternalIDs {
+		if !memberMap[userID] {
+			newMemberIDs = append(newMemberIDs, userID)
+		}
+	}
+
+	if len(newMemberIDs) == 0 {
+		return nil
+	}
+
+	return s.boardRepo.AddMember(uint(board.InternalID), newMemberIDs)
+}
