@@ -13,6 +13,7 @@ type BoardService interface {
 	Update(board *models.Board) error
 	GetByPublicID(publicID string) (*models.Board, error)
 	AddMember(boardPublicID string, userPublicIDS []string) error
+	RemoveMember(boardPublicID string, userPublicIDs []string) error
 }
 
 type boardService struct {
@@ -89,3 +90,41 @@ func (s *boardService) AddMember(boardPublicID string, userPublicIDS []string) e
 
 	return s.boardRepo.AddMember(uint(board.InternalID), newMemberIDs)
 }
+
+func (s *boardService) RemoveMember(boardPublicID string, userPublicIDs []string) error {
+	board, err := s.boardRepo.FindByPublicID(boardPublicID)
+	if err != nil {
+		return errors.New("Board Not Found")
+	}
+
+	// validasi userPublicIDs dan konversi ke userInternalIDs
+	var userInternalIDs []uint
+	for _, userPublicID := range userPublicIDs {
+		user, err := s.userRepo.FindByPublicID(userPublicID)
+		if err != nil {
+			return errors.New("User Not Found: " + userPublicID)
+		}
+		userInternalIDs = append(userInternalIDs, uint(user.InternalID))
+	}
+
+	// validasi keanggotaan user di board
+	existingMembers, err := s.boardMemberRepo.GetMembers(string(board.PublicID.String()))
+	if err != nil {
+		return err
+	}
+
+	// buat map untuk mengecek anggota yang sudah ada
+	memberMap := make(map[uint]bool)
+	for _, member := range existingMembers {
+		memberMap[uint(member.InternalID)] = true
+	}
+
+	var removedMemberIDs []uint
+	for _, userID := range userInternalIDs {
+		if memberMap[userID] {
+			removedMemberIDs = append(removedMemberIDs, userID)
+		}
+	}
+
+	return s.boardRepo.RemoveMember(uint(board.InternalID), removedMemberIDs)
+}	
