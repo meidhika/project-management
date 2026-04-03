@@ -13,7 +13,8 @@ import (
 
 func Setup(app *fiber.App, 
 	uc *controllers.UserController,
-	bc *controllers.BoardController) {
+	bc *controllers.BoardController,
+	lc *controllers.ListController) {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -30,17 +31,23 @@ func Setup(app *fiber.App,
 		},
 	}))
 
+	// users
 	userGroup := api.Group("/users")
 	userGroup.Get("/page", uc.GetUserPagination) // /api/v1/users/page?page=1&limit=10&sort=-id&filter=triady
 	userGroup.Get("/:id", uc.GetUser) // /api/v1/users/:id
 	userGroup.Put("/:id", uc.UpdateUser)
 	userGroup.Delete("/:id", uc.DeleteUser)
 
+	// boards
 	boardGroup := api.Group("/boards")
 	boardGroup.Post("/", bc.CreateBoard)
 	boardGroup.Put("/:id", bc.UpdateBoard)
 	boardGroup.Post("/:id/members", bc.AddBoardMembers)
 	boardGroup.Delete("/:id/members", bc.RemoveBoardMembers)
 	boardGroup.Get("/my", bc.GetMyBoardPaginate)
+
+	// list
+	listGroup := api.Group("/lists")
+	listGroup.Post("/", lc.CreateList)
 
 }
