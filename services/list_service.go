@@ -54,11 +54,17 @@ func (s *listService) GetByBoardID(boardPublicID string)(*ListWithOrder, error) 
 	if err != nil {
 		return nil, errors.New("Failed to get list order: " + err.Error())
 	}
+	if len(position) == 0 {
+		return nil, errors.New("List position not found: ")
+	}
 
 	lists, err := s.listRepo.FindByBoardID(boardPublicID)
 	if err != nil {
 		return nil, errors.New("Failed to get lists: " + err.Error())
 	}
+
+	fmt.Println(position)
+	fmt.Println(lists)
 
 	// sorting by position
 	orderedList := utils.SortListsByPosition(lists, position)
