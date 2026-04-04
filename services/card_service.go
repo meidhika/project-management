@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -188,4 +189,69 @@ func (s *cardService) Update(card *models.Card, listPublicID string) error {
 	return nil
 
 
+}
+
+func (s *cardService) Delete(id uint) error {
+	return s.cardRepo.Delete(id)
+}
+
+func (s *cardService) GetByListID(listPublicID string) ([]models.Card, error) {
+	// verifikasi listnya ada
+	list, err := s.listRepo.FindByPublicID(listPublicID)
+	if err != nil {
+		return nil, fmt.Errorf("list not found: %w", err)
+	}
+
+	// ambil card position
+	position, err := s.cardRepo.FindCardPositionByListID(list.InternalID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get card position: %w", err)
+	}
+
+	// ambil semua card di list tersebut berdasarkan urutan di card position
+	cards, err := s.cardRepo.FindByListID(listPublicID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get cards: %w", err)
+	}
+
+	// sorting
+	if position != nil && len(position.CardOrder) > 0 {
+		cards = sortCardByPosition(cards, position.CardOrder)
+	}
+	return cards, nil
+}
+
+func sortCardByPosition(cards []models.Card, order []uuid.UUID) []models.Card {
+	// buat map untu pencarian cepat
+	orderMap := make(map[uuid.UUID]int)
+	for i, id := range order {
+		orderMap[id] = i
+	}
+
+	defaultIndex := len(order)
+	// sorting slice
+	sort.SliceStable(cards, func (i, j int) bool{
+		idxI, okI := orderMap[cards[i].PublicID]
+		if !okI{
+			idxI = defaultIndex
+		}
+		idxJ, okJ := orderMap[cards[j].PublicID]
+		if !okJ{
+			idxJ = defaultIndex
+		}
+
+		if idxI == idxJ{
+			return cards[i].CreatedAt.Before(cards[j].CreatedAt)
+		}
+		return idxI < idxJ
+	})
+	return cards
+}
+
+func (s *cardService) GetByID(id uint) (*models.Card, error) {
+	return s.cardRepo.FindByID(id)
+}
+
+func (s *cardService) GetByPublicID(publicID string) (*models.Card, error) {	
+	return s.cardRepo.FindByPublicID(publicID)
 }
