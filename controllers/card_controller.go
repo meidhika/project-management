@@ -79,3 +79,22 @@ func (c *CardController) UpdateCard(ctx *fiber.Ctx) error{
 
 	return utils.Success(ctx, "Card Berhasil diperbaharui", card)
 }
+
+
+func (c *CardController) DeleteCard(ctx *fiber.Ctx) error {
+	publicID := ctx.Params("id")
+	if _, err := uuid.Parse(publicID); err != nil {
+		return utils.BadRequest(ctx, "ID Tidak Valid", err.Error())
+	}
+
+	card, err := c.service.GetByPublicID(publicID)
+	if err != nil {
+		return utils.NotFound(ctx, "Card Tidak Ditemukan", err.Error())
+	}
+
+	if err := c.service.Delete(uint(card.InternalID)); err != nil {
+		return utils.BadRequest(ctx, "Gagal Menghapus Card", err.Error())
+	}
+
+	return utils.Success(ctx, "Card Berhasil Dihapus", publicID)
+}
