@@ -47,7 +47,7 @@ func (r *cardRepository) FindByID(id uint) (*models.Card, error) {
 
 func (r *cardRepository) FindByPublicID(publicID string) (*models.Card, error) {
 	var card models.Card
-	if err := config.DB.Preload("Assigness.User", func (tx *gorm.DB) *gorm.DB {
+	if err := config.DB.Preload("Assignees.User", func (tx *gorm.DB) *gorm.DB {
 		return tx.Select("internal_id, public_id, name, email")
 	}).Preload("Attachments").Where("public_id = ?", publicID).First(&card).Error; err != nil {
 		return nil, err
